@@ -15,22 +15,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     outputs:
-      version: ${{ steps.out.outputs.version }}
-      platform: ${{ steps.out.outputs.platform }}
-      binary-ok: ${{ steps.check-binary.outputs.binary-ok }}
-      headless-ok: ${{ steps.check-headless.outputs.headless-ok }}
+      result: ${{ steps.out.outputs.result }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./
         id: zotero
         with:
           channel: ${{ matrix.channel }}
-      - name: Set outputs
-        id: out
-        shell: bash
-        run: |
-          echo "version=${{ steps.zotero.outputs.zotero-version }}" >> "$GITHUB_OUTPUT"
-          echo "platform=${{ steps.zotero.outputs.zotero-platform }}" >> "$GITHUB_OUTPUT"
       - name: Check binary
         id: check-binary
         shell: bash
@@ -55,6 +46,15 @@ jobs:
             echo "Expected DISPLAY=:99, got: ${DISPLAY}"
             exit 1
           fi
+      - name: Set outputs
+        id: out
+        if: always()
+        shell: bash
+        run: |
+          HEADLESS="${{ steps.check-headless.outputs.headless-ok }}"
+          if [ -z "$HEADLESS" ]; then HEADLESS="n/a"; fi
+          RESULT="{\"os\":\"${{ runner.os }}\",\"channel\":\"${{ matrix.channel }}\",\"version\":\"${{ steps.zotero.outputs.zotero-version }}\",\"platform\":\"${{ steps.zotero.outputs.zotero-platform }}\",\"binary-ok\":\"${{ steps.check-binary.outputs.binary-ok }}\",\"headless-ok\":\"${HEADLESS}\"}"
+          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
 
   summary:
     needs: test
@@ -72,28 +72,25 @@ jobs:
           with open("/tmp/results.json") as f:
               data = json.load(f)
 
-          lines = []
-          lines.append("## Zotero Setup E2E Results")
-          lines.append("")
+          results = data.get("result", {})
+
+          lines = ["## Zotero Setup E2E Results", ""]
           lines.append("| OS | Channel | Version | Platform | Binary | Headless |")
           lines.append("| --- | --- | --- | --- | --- | --- |")
 
-          for key, outputs in sorted(data.items()):
-              try:
-                  combo = json.loads(key)
-              except (json.JSONDecodeError, TypeError):
-                  continue
-              os_name = combo["os"].replace("-latest", "")
-              channel = combo["channel"]
-              version = outputs.get("version", "-")
-              platform = outputs.get("platform", "-")
-              binary = ":white_check_mark:" if outputs.get("binary-ok") == "true" else ":x:"
-              hd = outputs.get("headless-ok", "")
-              headless = ":white_check_mark:" if hd == "true" else (":x:" if hd else "-")
-              lines.append(f"| {os_name} | {channel} | `{version}` | `{platform}` | {binary} | {headless} |")
+          if not results:
+              lines.append("| - | - | No results | - | - | - |")
 
-          if len(lines) <= 4:
-              lines.append("| - | - | No results available | - | - | - |")
+          for key in sorted(results.keys()):
+              result = json.loads(results[key])
+              os_name = result["os"].replace("-latest", "")
+              channel = result["channel"]
+              version = result.get("version", "-")
+              platform = result.get("platform", "-")
+              binary = ":white_check_mark:" if result.get("binary-ok") == "true" else ":x:"
+              hd = result.get("headless-ok", "n/a")
+              headless = ":white_check_mark:" if hd == "true" else (":x:" if hd == "false" else "-")
+              lines.append(f"| {os_name} | {channel} | `{version}` | `{platform}` | {binary} | {headless} |")
 
           summary = "\n".join(lines)
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
