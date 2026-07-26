@@ -1,13 +1,8 @@
 import * as cache from "@actions/cache";
 import * as core from "@actions/core";
 
-export function computeCacheKey(
-  platform: string,
-  channel: string,
-  version: string,
-  buildID: string,
-): string {
-  return `zotero-${platform}-${channel}-${version}-${buildID}`;
+export function computeCacheKey(platform: string, channel: string, version: string): string {
+  return `zotero-${platform}-${channel}-${version}`;
 }
 
 export async function restoreCache(key: string, paths: string[]): Promise<string | undefined> {

@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
-import * as path$9 from "node:path";
 import * as os$3 from "node:os";
+import * as path$9 from "node:path";
 import * as fs from "node:fs";
 //#region \0rolldown/runtime.js
 var __create = Object.create;
@@ -16839,15 +16839,9 @@ var require_core = /* @__PURE__ */ __commonJSMin(((exports) => {
 //#endregion
 //#region src/constants.ts
 var import_core = /* @__PURE__ */ __toESM(require_core(), 1);
-const MANIFEST_BASE_URL = "https://www.zotero.org/download/client/";
-const MANIFEST_PATH_TEMPLATE = "manifests/{channel}/updates-{platform}.json";
-const PLATFORM_INSTALLER_SUFFIX = {
-	"win-x64": "_setup.exe",
-	"win-arm64": "_setup.exe",
-	mac: ".dmg",
-	"linux-x86_64": "_linux-x86_64.tar.bz2",
-	"linux-i686": "_linux-i686.tar.bz2"
-};
+const DOWNLOAD_PAGE_URL = "https://www.zotero.org/download/";
+const DOWNLOAD_URL_TEMPLATE = "https://www.zotero.org/download/client/dl?channel={channel}&platform={platform}";
+const DOWNLOAD_URL_VERSION_TEMPLATE = "https://www.zotero.org/download/client/dl?channel={channel}&platform={platform}&version={version}";
 //#endregion
 //#region src/platforms.ts
 function detectPlatform() {
@@ -16856,8 +16850,8 @@ function detectPlatform() {
 	switch (runnerOs) {
 		case "Windows":
 		case "win32":
-			if (runnerArch === "ARM64" || runnerArch === "arm64") return "win-arm64";
-			return "win-x64";
+			if (runnerArch === "ARM64" || runnerArch === "arm64") return "win-arm64-zip";
+			return "win-x64-zip";
 		case "macOS":
 		case "darwin": return "mac";
 		case "Linux":
@@ -16868,55 +16862,38 @@ function detectPlatform() {
 	}
 }
 function getZoteroBinPath(programDir, platform) {
+	if (platform.startsWith("win")) return path$9.join(programDir, "zotero.exe");
 	switch (platform) {
-		case "win-x64":
-		case "win-arm64": return path$9.join(programDir, "zotero.exe");
 		case "mac": return path$9.join(programDir, "Zotero.app", "Contents", "MacOS", "zotero");
 		case "linux-x86_64":
 		case "linux-i686": return path$9.join(programDir, "zotero");
 		default: throw new Error(`Unknown platform: ${platform}`);
 	}
 }
-function constructDownloadUrl(platform, channel, version, buildID) {
-	const suffix = PLATFORM_INSTALLER_SUFFIX[platform];
-	if (!suffix) throw new Error(`Unknown platform: ${platform}`);
-	return `https://download.zotero.org/client/${channel}/${version}/Zotero-${version}_${buildID}${suffix}`;
+function constructDownloadUrl(platform, channel, version) {
+	let url = (version ? DOWNLOAD_URL_VERSION_TEMPLATE : DOWNLOAD_URL_TEMPLATE).replace("{channel}", channel).replace("{platform}", platform);
+	if (version) url = url.replace("{version}", version);
+	return url;
 }
 //#endregion
 //#region src/manifest.ts
 var import_lib = require_lib();
-function resolveVersion(userVersion, entries) {
-	if (userVersion) return parseVersionInput(userVersion);
-	if (entries.length === 0) throw new Error("Manifest is empty, no versions available");
-	const latest = entries[entries.length - 1];
-	return {
-		version: latest.version,
-		buildID: latest.buildID
-	};
-}
-function parseVersionInput(versionInput) {
-	const plusIndex = versionInput.lastIndexOf("+");
-	if (plusIndex !== -1) return {
-		version: versionInput.slice(0, plusIndex),
-		buildID: versionInput.slice(plusIndex + 1)
-	};
-	throw new Error(`Invalid version format: "${versionInput}". Expected format like "7.1-beta.39+0acfcd3f9" (version+buildID).`);
-}
-async function fetchManifest(channel, platform) {
-	const url = MANIFEST_BASE_URL + MANIFEST_PATH_TEMPLATE.replace("{channel}", channel).replace("{platform}", platform);
-	import_core.info(`Fetching manifest from: ${url}`);
-	const response = await new import_lib.HttpClient("action-setup-zotero").get(url);
-	if (response.message.statusCode !== 200) throw new Error(`Failed to fetch manifest: HTTP ${response.message.statusCode} from ${url}`);
-	const body = await response.readBody();
-	let parsed;
+async function fetchLatestVersion(platform) {
+	import_core.info(`Fetching latest version from: ${DOWNLOAD_PAGE_URL}`);
+	const response = await new import_lib.HttpClient("action-setup-zotero").get(DOWNLOAD_PAGE_URL);
+	if (response.message.statusCode !== 200) throw new Error(`Failed to fetch download page: HTTP ${response.message.statusCode}`);
+	const match = (await response.readBody()).match(/"standaloneVersions"\s*:\s*(\{[^}]+\})/);
+	if (!match) throw new Error("Could not find standaloneVersions in download page");
 	try {
-		parsed = JSON.parse(body);
-	} catch {
-		throw new Error(`Failed to parse manifest JSON from ${url}`);
+		const versions = JSON.parse(match[1]);
+		const key = platform.replace(/-zip$/, "");
+		const version = versions[key];
+		if (!version) throw new Error(`No version found for platform: ${platform} (key: ${key})`);
+		return version;
+	} catch (error) {
+		if (error instanceof Error && error.message.startsWith("No version found")) throw error;
+		throw new Error("Failed to parse standaloneVersions JSON");
 	}
-	if (!Array.isArray(parsed)) throw new Error(`Unexpected manifest format from ${url}: expected an array`);
-	for (const entry of parsed) if (typeof entry !== "object" || entry === null || typeof entry.version !== "string" || typeof entry.buildID !== "string") throw new Error(`Invalid manifest entry: missing version or buildID`);
-	return parsed;
 }
 //#endregion
 //#region node_modules/.pnpm/@actions+glob@0.1.2/node_modules/@actions/glob/lib/internal-glob-options-helper.js
@@ -71298,8 +71275,8 @@ var import_cache = /* @__PURE__ */ __toESM((/* @__PURE__ */ __commonJSMin(((expo
 		});
 	}
 })))(), 1);
-function computeCacheKey(platform, channel, version, buildID) {
-	return `zotero-${platform}-${channel}-${version}-${buildID}`;
+function computeCacheKey(platform, channel, version) {
+	return `zotero-${platform}-${channel}-${version}`;
 }
 async function restoreCache(key, paths) {
 	import_core.info(`Looking up cache with key: ${key}`);
@@ -72145,34 +72122,30 @@ var import_exec = /* @__PURE__ */ __toESM(require_exec(), 1);
 var import_tool_cache = /* @__PURE__ */ __toESM(require_tool_cache(), 1);
 async function downloadInstaller(url, destDir) {
 	fs.mkdirSync(destDir, { recursive: true });
-	const fileName = url.split("/").pop() || "zotero-installer";
-	const destPath = path$9.join(destDir, fileName);
+	const destPath = resolveDestPath(url, destDir);
 	if (fs.existsSync(destPath)) {
 		import_core.info(`Installer already exists at: ${destPath}`);
 		return destPath;
 	}
 	import_core.info(`Downloading ${url}`);
-	const downloadedPath = await import_tool_cache.downloadTool(url, path$9.join(destDir, "zotero-download"));
-	const finalPath = path$9.join(destDir, fileName);
-	fs.renameSync(downloadedPath, finalPath);
-	import_core.info(`Downloaded to: ${finalPath}`);
-	return finalPath;
+	const downloadedPath = await import_tool_cache.downloadTool(url, destPath);
+	import_core.info(`Downloaded to: ${downloadedPath}`);
+	return downloadedPath;
+}
+function resolveDestPath(url, destDir) {
+	const match = url.match(/[?&]platform=([^&]+)/);
+	const platform = match ? match[1] : "";
+	if (platform === "mac") return path$9.join(destDir, "Zotero.dmg");
+	if (platform.startsWith("win")) return path$9.join(destDir, "Zotero.zip");
+	if (platform.startsWith("linux")) return path$9.join(destDir, "Zotero.tar.xz");
+	return path$9.join(destDir, "Zotero-installer");
 }
 async function extractWindows(installerPath, destDir) {
 	fs.mkdirSync(destDir, { recursive: true });
-	try {
-		import_core.info("Attempting 7z extraction for Windows installer...");
-		await import_tool_cache.extract7z(installerPath, destDir);
-		import_core.info("7z extraction succeeded");
-	} catch {
-		import_core.info("7z extraction failed, trying NSIS silent install...");
-		await import_exec.exec(installerPath, [
-			"/S",
-			`/D=${destDir}`,
-			"/NCRC"
-		]);
-	}
-	return findZoteroCoreDir(destDir, "win") || destDir;
+	import_core.info("Extracting ZIP...");
+	await import_tool_cache.extractZip(installerPath, destDir);
+	import_core.info("ZIP extraction succeeded");
+	return destDir;
 }
 async function extractMacOS(installerPath, destDir) {
 	fs.mkdirSync(destDir, { recursive: true });
@@ -72214,20 +72187,19 @@ async function extractMacOS(installerPath, destDir) {
 }
 async function extractLinux(installerPath, destDir) {
 	fs.mkdirSync(destDir, { recursive: true });
-	import_core.info("Extracting tar.bz2...");
+	import_core.info("Extracting Zotero archive...");
 	const extracted = await import_tool_cache.extractTar(installerPath, destDir);
-	return findZoteroCoreDir(destDir, "linux") || extracted;
+	return findZoteroCoreDir(destDir) || extracted;
 }
-function findZoteroCoreDir(baseDir, _platform) {
+function findZoteroCoreDir(baseDir) {
 	const entries = fs.readdirSync(baseDir, { withFileTypes: true });
 	for (const entry of entries) if (entry.isDirectory() && entry.name.toLowerCase().startsWith("zotero")) return path$9.join(baseDir, entry.name);
 	return null;
 }
 async function extractZotero(installerPath, platform, destDir) {
 	import_core.info(`Extracting Zotero for platform: ${platform}`);
+	if (platform.startsWith("win")) return extractWindows(installerPath, destDir);
 	switch (platform) {
-		case "win-x64":
-		case "win-arm64": return extractWindows(installerPath, destDir);
 		case "mac": return extractMacOS(installerPath, destDir);
 		case "linux-x86_64":
 		case "linux-i686": return extractLinux(installerPath, destDir);
@@ -72307,33 +72279,21 @@ async function runMain() {
 	const useCache = import_core.getInput("cache") !== "false";
 	const platform = archInput || detectPlatform();
 	import_core.info(`Platform: ${platform}, Channel: ${channel}`);
-	let version;
-	let buildID;
-	if (versionInput) {
-		const parsed = parseVersionInput(versionInput);
-		version = parsed.version;
-		buildID = parsed.buildID;
-		import_core.info(`Using specified version: ${version} (build: ${buildID})`);
-	} else {
-		import_core.info(`Fetching latest ${channel} version from manifest...`);
-		const resolved = resolveVersion(void 0, await fetchManifest(channel, platform));
-		version = resolved.version;
-		buildID = resolved.buildID;
-		import_core.info(`Latest ${channel} version: ${version} (build: ${buildID})`);
-	}
+	const version = versionInput || await fetchLatestVersion(platform);
+	import_core.info(`Version: ${version}`);
 	if (platform.startsWith("linux")) await setupHeadless();
-	const tmpDir = process.env.RUNNER_TEMP || "/tmp";
+	const tmpDir = process.env.RUNNER_TEMP || os$3.tmpdir();
 	const cacheDir = path$9.join(tmpDir, "zotero-setup");
 	const installerDir = path$9.join(cacheDir, "installer");
 	const programDir = path$9.join(cacheDir, version);
-	const cacheKey = computeCacheKey(platform, channel, version, buildID);
+	const cacheKey = computeCacheKey(platform, channel, version);
 	let cacheHit = false;
 	if (useCache) {
 		if (await restoreCache(cacheKey, [installerDir, programDir])) cacheHit = true;
 	}
 	if (!cacheHit) {
-		const url = constructDownloadUrl(platform, channel, version, buildID);
-		import_core.info(`Downloading Zotero ${version} for ${platform} from: ${url}`);
+		const url = constructDownloadUrl(platform, channel, version);
+		import_core.info(`Downloading Zotero ${version} from: ${url}`);
 		const installerPath = await downloadInstaller(url, installerDir);
 		import_core.info(`Extracting Zotero to: ${programDir}`);
 		await extractZotero(installerPath, platform, programDir);
@@ -72346,7 +72306,6 @@ async function runMain() {
 	const binPath = getZoteroBinPath(programDir, platform);
 	import_core.setOutput("cache-hit", cacheHit ? "true" : "false");
 	import_core.setOutput("zotero-version", version);
-	import_core.setOutput("zotero-build-id", buildID);
 	import_core.setOutput("zotero-path", programDir);
 	import_core.setOutput("zotero-bin-path", binPath);
 	import_core.setOutput("zotero-platform", platform);

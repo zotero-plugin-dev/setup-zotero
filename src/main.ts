@@ -1,7 +1,8 @@
 import * as core from "@actions/core";
+import * as os from "node:os";
 import * as path from "node:path";
 import { detectPlatform, getZoteroBinPath, constructDownloadUrl } from "./platforms";
-import { fetchManifest, resolveVersion, parseVersionInput } from "./manifest";
+import { fetchLatestVersion } from "./manifest";
 import { computeCacheKey, restoreCache, saveCache } from "./cache";
 import { downloadInstaller, extractZotero } from "./downloader";
 import { setupHeadless } from "./headless";
@@ -23,31 +24,18 @@ async function runMain(): Promise<void> {
   const platform = archInput || detectPlatform();
   core.info(`Platform: ${platform}, Channel: ${channel}`);
 
-  let version: string;
-  let buildID: string;
-  if (versionInput) {
-    const parsed = parseVersionInput(versionInput);
-    version = parsed.version;
-    buildID = parsed.buildID;
-    core.info(`Using specified version: ${version} (build: ${buildID})`);
-  } else {
-    core.info(`Fetching latest ${channel} version from manifest...`);
-    const manifest = await fetchManifest(channel, platform);
-    const resolved = resolveVersion(undefined, manifest);
-    version = resolved.version;
-    buildID = resolved.buildID;
-    core.info(`Latest ${channel} version: ${version} (build: ${buildID})`);
-  }
+  const version = versionInput || (await fetchLatestVersion(platform));
+  core.info(`Version: ${version}`);
 
   if (platform.startsWith("linux")) {
     await setupHeadless();
   }
 
-  const tmpDir = process.env.RUNNER_TEMP || "/tmp";
+  const tmpDir = process.env.RUNNER_TEMP || os.tmpdir();
   const cacheDir = path.join(tmpDir, "zotero-setup");
   const installerDir = path.join(cacheDir, "installer");
   const programDir = path.join(cacheDir, version);
-  const cacheKey = computeCacheKey(platform, channel, version, buildID);
+  const cacheKey = computeCacheKey(platform, channel, version);
 
   let cacheHit = false;
   if (useCache) {
@@ -56,8 +44,8 @@ async function runMain(): Promise<void> {
   }
 
   if (!cacheHit) {
-    const url = constructDownloadUrl(platform, channel, version, buildID);
-    core.info(`Downloading Zotero ${version} for ${platform} from: ${url}`);
+    const url = constructDownloadUrl(platform, channel, version);
+    core.info(`Downloading Zotero ${version} from: ${url}`);
     const installerPath = await downloadInstaller(url, installerDir);
     core.info(`Extracting Zotero to: ${programDir}`);
     await extractZotero(installerPath, platform, programDir);
@@ -73,7 +61,6 @@ async function runMain(): Promise<void> {
 
   core.setOutput("cache-hit", cacheHit ? "true" : "false");
   core.setOutput("zotero-version", version);
-  core.setOutput("zotero-build-id", buildID);
   core.setOutput("zotero-path", programDir);
   core.setOutput("zotero-bin-path", binPath);
   core.setOutput("zotero-platform", platform);

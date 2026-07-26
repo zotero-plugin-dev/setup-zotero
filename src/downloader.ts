@@ -7,8 +7,7 @@ import * as path from "node:path";
 export async function downloadInstaller(url: string, destDir: string): Promise<string> {
   fs.mkdirSync(destDir, { recursive: true });
 
-  const fileName = url.split("/").pop() || "zotero-installer";
-  const destPath = path.join(destDir, fileName);
+  const destPath = resolveDestPath(url, destDir);
 
   if (fs.existsSync(destPath)) {
     core.info(`Installer already exists at: ${destPath}`);
@@ -16,27 +15,27 @@ export async function downloadInstaller(url: string, destDir: string): Promise<s
   }
 
   core.info(`Downloading ${url}`);
-  const downloadedPath = await toolCache.downloadTool(url, path.join(destDir, "zotero-download"));
-  const finalPath = path.join(destDir, fileName);
-  fs.renameSync(downloadedPath, finalPath);
-  core.info(`Downloaded to: ${finalPath}`);
-  return finalPath;
+  const downloadedPath = await toolCache.downloadTool(url, destPath);
+  core.info(`Downloaded to: ${downloadedPath}`);
+  return downloadedPath;
+}
+
+function resolveDestPath(url: string, destDir: string): string {
+  const match = url.match(/[?&]platform=([^&]+)/);
+  const platform = match ? match[1] : "";
+
+  if (platform === "mac") return path.join(destDir, "Zotero.dmg");
+  if (platform.startsWith("win")) return path.join(destDir, "Zotero.zip");
+  if (platform.startsWith("linux")) return path.join(destDir, "Zotero.tar.xz");
+  return path.join(destDir, "Zotero-installer");
 }
 
 async function extractWindows(installerPath: string, destDir: string): Promise<string> {
   fs.mkdirSync(destDir, { recursive: true });
-
-  try {
-    core.info("Attempting 7z extraction for Windows installer...");
-    await toolCache.extract7z(installerPath, destDir);
-    core.info("7z extraction succeeded");
-  } catch {
-    core.info("7z extraction failed, trying NSIS silent install...");
-    await exec.exec(installerPath, ["/S", `/D=${destDir}`, "/NCRC"]);
-  }
-
-  const coreDir = findZoteroCoreDir(destDir, "win");
-  return coreDir || destDir;
+  core.info("Extracting ZIP...");
+  await toolCache.extractZip(installerPath, destDir);
+  core.info("ZIP extraction succeeded");
+  return destDir;
 }
 
 async function extractMacOS(installerPath: string, destDir: string): Promise<string> {
@@ -85,14 +84,14 @@ async function extractMacOS(installerPath: string, destDir: string): Promise<str
 async function extractLinux(installerPath: string, destDir: string): Promise<string> {
   fs.mkdirSync(destDir, { recursive: true });
 
-  core.info("Extracting tar.bz2...");
+  core.info("Extracting Zotero archive...");
   const extracted = await toolCache.extractTar(installerPath, destDir);
 
-  const coreDir = findZoteroCoreDir(destDir, "linux");
+  const coreDir = findZoteroCoreDir(destDir);
   return coreDir || extracted;
 }
 
-function findZoteroCoreDir(baseDir: string, _platform: "win" | "linux"): string | null {
+function findZoteroCoreDir(baseDir: string): string | null {
   const entries = fs.readdirSync(baseDir, { withFileTypes: true });
   for (const entry of entries) {
     if (entry.isDirectory() && entry.name.toLowerCase().startsWith("zotero")) {
@@ -109,10 +108,10 @@ export async function extractZotero(
 ): Promise<string> {
   core.info(`Extracting Zotero for platform: ${platform}`);
 
+  if (platform.startsWith("win")) {
+    return extractWindows(installerPath, destDir);
+  }
   switch (platform) {
-    case "win-x64":
-    case "win-arm64":
-      return extractWindows(installerPath, destDir);
     case "mac":
       return extractMacOS(installerPath, destDir);
     case "linux-x86_64":
