@@ -15,7 +15,7 @@ export default defineConfig({
     sourcemap: false,
     dts: false,
     clean: true,
-    target: "node20",
+    target: "node24",
     hash: false,
     deps: {
       alwaysBundle: [/^@actions\//],

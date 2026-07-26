@@ -19,11 +19,11 @@
     "@actions/tool-cache": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^24.0.0",
     "vite-plus": "^0.2.0"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   },
   "packageManager": "pnpm@11.9.0"
 }
