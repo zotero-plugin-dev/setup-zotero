@@ -71,6 +71,7 @@ async function runMain(): Promise<void> {
   core.setOutput("zotero-platform", platform);
   core.setOutput("zotero-channel", channel);
 
+  // For zotero-plugin-scaffold compatibility
   core.exportVariable("ZOTERO_PLUGIN_ZOTERO_BIN_PATH", binPath);
   core.exportVariable("ZOTERO_BIN_PATH", binPath);
   core.exportVariable("ZOTERO_VERSION", version);
