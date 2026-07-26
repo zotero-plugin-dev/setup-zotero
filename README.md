@@ -31,19 +31,18 @@ jobs:
 | ----------------- | -------------------------------------- |
 | `cache-hit`       | Whether Zotero was restored from cache |
 | `zotero-version`  | Installed Zotero version               |
-| `zotero-build-id` | Installed Zotero build ID              |
-| `zotero-path`     | Path to the Zotero program directory   |
 | `zotero-bin-path` | Path to the Zotero executable          |
 | `zotero-platform` | Resolved platform identifier           |
 | `zotero-channel`  | Resolved channel                       |
 
 ## Environment Variables
 
-| Variable                        | Description                                                  |
-| ------------------------------- | ------------------------------------------------------------ |
-| `ZOTERO_PLUGIN_ZOTERO_BIN_PATH` | Path to Zotero executable (used by `zotero-plugin-scaffold`) |
-| `ZOTERO_PATH`                   | Path to Zotero program directory                             |
-| `ZOTERO_VERSION`                | Installed Zotero version                                     |
+| Variable                        | Description                                                   |
+| ------------------------------- | ------------------------------------------------------------- |
+| `ZOTERO_BIN_PATH`               | Path to Zotero executable                                     |
+| `ZOTERO_PLUGIN_ZOTERO_BIN_PATH` | Same as `ZOTERO_BIN_PATH` (for `zotero-plugin-scaffold`)      |
+| `ZOTERO_VERSION`                | Installed Zotero version                                      |
+| `ZOTERO_SETUP_COMPLETE`         | Set to `true` when all setup is done (scaffold can skip init) |
 
 ## Platform Support
 
@@ -58,7 +57,7 @@ jobs:
 Installer and extracted program files are cached. Cache key format:
 
 ```
-zotero-{platform}-{channel}-{version}-{buildID}
+zotero-{platform}-{channel}-{version}
 ```
 
 Set `cache: 'false'` to disable caching.
