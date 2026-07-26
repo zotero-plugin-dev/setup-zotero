@@ -24,8 +24,9 @@ async function runMain(): Promise<void> {
   const platform = archInput || detectPlatform();
   core.info(`Platform: ${platform}, Channel: ${channel}`);
 
-  const version = versionInput || (await fetchLatestVersion(platform));
-  core.info(`Version: ${version}`);
+  const autoVersion = channel === "release" ? await fetchLatestVersion(platform) : "";
+  const version = versionInput || autoVersion;
+  core.info(`Version: ${version || "(latest in channel)"}`);
 
   if (platform.startsWith("linux")) {
     await setupHeadless();
@@ -34,8 +35,8 @@ async function runMain(): Promise<void> {
   const tmpDir = process.env.RUNNER_TEMP || os.tmpdir();
   const cacheDir = path.join(tmpDir, "setup-zotero");
   const installerDir = path.join(cacheDir, "installer");
-  const programDir = path.join(cacheDir, version);
-  const cacheKey = computeCacheKey(platform, channel, version);
+  const programDir = path.join(cacheDir, version || channel);
+  const cacheKey = computeCacheKey(platform, channel, version || channel);
 
   let cacheHit = false;
   if (useCache) {
@@ -44,7 +45,8 @@ async function runMain(): Promise<void> {
   }
 
   if (!cacheHit) {
-    const url = constructDownloadUrl(platform, channel, version);
+    const urlVersion = versionInput ? version : channel === "release" ? version : undefined;
+    const url = constructDownloadUrl(platform, channel, urlVersion);
     core.info(`Downloading Zotero ${version} from: ${url}`);
     const installerPath = await downloadInstaller(url, installerDir);
     core.info(`Extracting Zotero to: ${programDir}`);

@@ -74,16 +74,11 @@ jobs:
           RESULTS: ${{ toJson(needs.test.outputs) }}
         run: |
           echo "$RESULTS" > /tmp/results.json
-          python3 << 'PYEOF'
-          import json
+          python3 << PYEOF
+          import json, os
 
           with open("/tmp/results.json") as f:
               data = json.load(f)
-
-          versions = data.get("version", {})
-          platforms = data.get("platform", {})
-          binary_oks = data.get("binary-ok", {})
-          headless_oks = data.get("headless-ok", {})
 
           lines = []
           lines.append("## Zotero Setup E2E Results")
@@ -91,21 +86,24 @@ jobs:
           lines.append("| OS | Channel | Version | Platform | Binary | Headless |")
           lines.append("| --- | --- | --- | --- | --- | --- |")
 
-          for key in sorted(versions.keys()):
-              combo = json.loads(key)
+          for key, outputs in sorted(data.items()):
+              try:
+                  combo = json.loads(key)
+              except (json.JSONDecodeError, TypeError):
+                  continue
               os_name = combo["os"].replace("-latest", "")
               channel = combo["channel"]
-              version = versions.get(key, "-")
-              platform = platforms.get(key, "-")
-              binary = ":white_check_mark:" if binary_oks.get(key) == "true" else ":x:"
-              hd = headless_oks.get(key, "")
-              if "linux" in os_name:
-                  headless = ":white_check_mark:" if hd == "true" else ":x:"
-              else:
-                  headless = "-"
+              version = outputs.get("version", "-")
+              platform = outputs.get("platform", "-")
+              binary = ":white_check_mark:" if outputs.get("binary-ok") == "true" else ":x:"
+              hd = outputs.get("headless-ok", "")
+              headless = ":white_check_mark:" if hd == "true" else (":x:" if hd else "-")
               lines.append(f"| {os_name} | {channel} | `{version}` | `{platform}` | {binary} | {headless} |")
 
+          if len(lines) <= 4:
+              lines.append("| - | - | No results available | - | - | - |")
+
           summary = "\n".join(lines)
-          with open("$GITHUB_STEP_SUMMARY", "a") as f:
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
               f.write(summary + "\n")
           PYEOF
