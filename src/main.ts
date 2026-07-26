@@ -93,4 +93,17 @@ async function runPost(): Promise<void> {
   core.endGroup();
 }
 
-run().catch((error) => core.setFailed(error.message));
+run().catch(async (error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const stack = error instanceof Error ? error.stack : "";
+
+  await core.summary
+    .addHeading("Setup Zotero Failed", 2)
+    .addCodeBlock(message, "text")
+    .addRaw("<details><summary>Stack trace</summary>\n\n")
+    .addCodeBlock(stack || "(none)", "text")
+    .addRaw("\n</details>")
+    .write();
+
+  core.setFailed(message);
+});
