@@ -146,16 +146,10 @@ export async function installZotero(
   programDir: string,
 ): Promise<void> {
   const url = constructDownloadUrl(platform, channel, version);
-
-  core.startGroup("Download");
   core.info(`Downloading Zotero ${version} from: ${url}`);
   const installerPath = await downloadInstaller(url, installerDir);
-  core.endGroup();
-
-  core.startGroup("Extract");
   core.info(`Extracting Zotero to: ${programDir}`);
   await extractZotero(installerPath, platform, programDir);
-  core.endGroup();
 }
 
 async function extractZotero(
