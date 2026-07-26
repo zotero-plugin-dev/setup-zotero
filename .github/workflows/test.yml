@@ -14,52 +14,98 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
+    outputs:
+      version: ${{ steps.out.outputs.version }}
+      platform: ${{ steps.out.outputs.platform }}
+      binary-ok: ${{ steps.check-binary.outputs.binary-ok }}
+      headless-ok: ${{ steps.check-headless.outputs.headless-ok }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./
         id: zotero
         with:
           channel: ${{ matrix.channel }}
-      - name: Verify outputs
+      - name: Set outputs
+        id: out
+        shell: bash
         run: |
-          echo "Version: ${{ steps.zotero.outputs.zotero-version }}"
-          echo "Bin path: ${{ steps.zotero.outputs.zotero-bin-path }}"
-          echo "Platform: ${{ steps.zotero.outputs.zotero-platform }}"
-      - name: Verify Zotero binary exists
+          echo "version=${{ steps.zotero.outputs.zotero-version }}" >> "$GITHUB_OUTPUT"
+          echo "platform=${{ steps.zotero.outputs.zotero-platform }}" >> "$GITHUB_OUTPUT"
+      - name: Check binary
+        id: check-binary
         shell: bash
         run: |
           if [ -f "${{ steps.zotero.outputs.zotero-bin-path }}" ]; then
-            echo "Zotero binary found"
+            echo "binary-ok=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Zotero binary NOT found at ${{ steps.zotero.outputs.zotero-bin-path }}"
-            ls -la "$(dirname "${{ steps.zotero.outputs.zotero-bin-path }}")" || true
-            exit 1
+            echo "binary-ok=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Verify headless (Linux only)
-        if: runner.os == 'Linux'
+      - name: Verify binary
+        if: always() && steps.check-binary.outputs.binary-ok != 'true'
         shell: bash
         run: |
-          echo "DISPLAY=${DISPLAY}"
+          echo "Binary not found at ${{ steps.zotero.outputs.zotero-bin-path }}"
+          ls -la "$(dirname "${{ steps.zotero.outputs.zotero-bin-path }}")" || true
+          exit 1
+      - name: Check headless
+        id: check-headless
+        if: always() && runner.os == 'Linux'
+        shell: bash
+        run: |
           if [ "$DISPLAY" = ":99" ]; then
-            echo "Headless display configured correctly"
+            echo "headless-ok=true" >> "$GITHUB_OUTPUT"
           else
-            echo "DISPLAY not set to :99, got: ${DISPLAY}"
-            exit 1
+            echo "headless-ok=false" >> "$GITHUB_OUTPUT"
           fi
-      - name: Write summary
-        if: always()
+      - name: Verify headless
+        if: always() && runner.os == 'Linux' && steps.check-headless.outputs.headless-ok != 'true'
         shell: bash
         run: |
-          {
-            echo "### Zotero Setup :rocket:"
-            echo ""
-            echo "| Key | Value |"
-            echo "| --- | --- |"
-            echo "| OS | ${{ runner.os }} |"
-            echo "| Channel | ${{ matrix.channel }} |"
-            echo "| Version | \`${{ steps.zotero.outputs.zotero-version }}\` |"
-            echo "| Platform | \`${{ steps.zotero.outputs.zotero-platform }}\` |"
-            echo "| Cache Hit | ${{ steps.zotero.outputs.cache-hit }} |"
-            echo "| Binary Path | \`${{ steps.zotero.outputs.zotero-bin-path }}\` |"
-            echo "| Zotero Path | \`${{ steps.zotero.outputs.zotero-path }}\` |"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Expected DISPLAY=:99, got: ${DISPLAY}"
+          exit 1
+
+  summary:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        env:
+          RESULTS: ${{ toJson(needs.test.outputs) }}
+        run: |
+          echo "$RESULTS" > /tmp/results.json
+          python3 << 'PYEOF'
+          import json
+
+          with open("/tmp/results.json") as f:
+              data = json.load(f)
+
+          versions = data.get("version", {})
+          platforms = data.get("platform", {})
+          binary_oks = data.get("binary-ok", {})
+          headless_oks = data.get("headless-ok", {})
+
+          lines = []
+          lines.append("## Zotero Setup E2E Results")
+          lines.append("")
+          lines.append("| OS | Channel | Version | Platform | Binary | Headless |")
+          lines.append("| --- | --- | --- | --- | --- | --- |")
+
+          for key in sorted(versions.keys()):
+              combo = json.loads(key)
+              os_name = combo["os"].replace("-latest", "")
+              channel = combo["channel"]
+              version = versions.get(key, "-")
+              platform = platforms.get(key, "-")
+              binary = ":white_check_mark:" if binary_oks.get(key) == "true" else ":x:"
+              hd = headless_oks.get(key, "")
+              if "linux" in os_name:
+                  headless = ":white_check_mark:" if hd == "true" else ":x:"
+              else:
+                  headless = "-"
+              lines.append(f"| {os_name} | {channel} | `{version}` | `{platform}` | {binary} | {headless} |")
+
+          summary = "\n".join(lines)
+          with open("$GITHUB_STEP_SUMMARY", "a") as f:
+              f.write(summary + "\n")
+          PYEOF
