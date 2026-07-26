@@ -1,0 +1,25 @@
+name: Check dist/
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: voidzero-dev/setup-vp@v1
+      - run: vp install
+      - run: vp pack
+      - name: Verify dist/ is up to date
+        run: |
+          if git diff --quiet -- dist/; then
+            echo "dist/ is up to date"
+          else
+            echo "dist/ is stale. Run 'vp pack' and commit the changes."
+            git diff -- dist/
+            exit 1
+          fi

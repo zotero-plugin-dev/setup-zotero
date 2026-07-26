@@ -1,0 +1,52 @@
+name: "Setup Zotero"
+description: "Download and setup Zotero for plugin development and testing"
+author: "zotero-plugin-dev"
+
+inputs:
+  zotero-version:
+    description: |
+      Zotero version to install.
+      For release: e.g. "7.0.0"
+      For beta/dev: "7.1-beta.39+0acfcd3f9"
+      Omit to use the latest version from the update manifest.
+    required: false
+  channel:
+    description: "Release channel: release, beta, or dev"
+    required: false
+    default: "release"
+  architecture:
+    description: |
+      Target platform/architecture.
+      Auto-detected from runner if not specified.
+      One of: mac, win-x64, win-arm64, linux-x86_64, linux-i686
+    required: false
+  cache:
+    description: "Whether to use GitHub Actions cache"
+    required: false
+    default: "true"
+
+outputs:
+  cache-hit:
+    description: "Whether Zotero was restored from cache"
+  zotero-version:
+    description: "The installed Zotero version"
+  zotero-build-id:
+    description: "The installed Zotero build ID"
+  zotero-path:
+    description: "Path to the Zotero program directory"
+  zotero-bin-path:
+    description: "Path to the Zotero executable (for zotero-plugin-scaffold)"
+  zotero-platform:
+    description: "The resolved platform identifier"
+  zotero-channel:
+    description: "The resolved channel (release/beta/dev)"
+
+runs:
+  using: "node20"
+  main: "dist/index.mjs"
+  post: "dist/index.mjs"
+  post-if: success()
+
+branding:
+  icon: "download"
+  color: "red"
