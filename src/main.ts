@@ -24,8 +24,10 @@ async function runMain(): Promise<void> {
   const platform = archInput || detectPlatform();
   core.info(`Platform: ${platform}, Channel: ${channel}`);
 
+  core.startGroup("Resolve version");
   const version = versionInput || (await fetchLatestVersion(channel, platform));
-  core.info(`Version: ${version}`);
+  core.info(`Resolved version: ${version}`);
+  core.endGroup();
 
   const tmpDir = process.env.RUNNER_TEMP || os.tmpdir();
   const cacheDir = path.join(tmpDir, "setup-zotero");
@@ -35,18 +37,26 @@ async function runMain(): Promise<void> {
 
   let cacheHit = false;
   if (useCache) {
+    core.startGroup("Restore cache");
     const restored = await restoreCache(cacheKey, [installerDir, programDir]);
     if (restored) cacheHit = true;
+    core.info(cacheHit ? "Cache hit, skipping download" : "Cache miss");
+    core.endGroup();
   }
 
   if (!cacheHit) {
+    core.startGroup("Install Zotero");
     await installZotero(platform, channel, version, installerDir, programDir);
+    core.endGroup();
   }
 
   const binPath = getZoteroBinPath(programDir, platform);
+  core.info(`Zotero binary: ${binPath}`);
 
   if (platform.startsWith("linux")) {
+    core.startGroup("Setup headless display");
     await setupHeadless();
+    core.endGroup();
   }
 
   core.saveState("is_post", "true");
@@ -68,6 +78,7 @@ async function runMain(): Promise<void> {
 }
 
 async function runPost(): Promise<void> {
+  core.startGroup("Save cache");
   const cacheHit = core.getState("cacheHit") === "true";
   const useCache = core.getState("useCache") === "true";
 
@@ -76,7 +87,10 @@ async function runPost(): Promise<void> {
     const cachePaths = JSON.parse(core.getState("cachePaths"));
     await saveCache(cacheKey, cachePaths);
     core.info(`Cache saved with key: ${cacheKey}`);
+  } else {
+    core.info(cacheHit ? "Cache hit, skipping save" : "Cache disabled, skipping save");
   }
+  core.endGroup();
 }
 
 run().catch((error) => core.setFailed(error.message));
