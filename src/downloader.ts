@@ -92,7 +92,7 @@ async function extractLinux(installerPath: string, destDir: string): Promise<str
   return coreDir || extracted;
 }
 
-function findZoteroCoreDir(baseDir: string, platform: "win" | "linux"): string | null {
+function findZoteroCoreDir(baseDir: string, _platform: "win" | "linux"): string | null {
   const entries = fs.readdirSync(baseDir, { withFileTypes: true });
   for (const entry of entries) {
     if (entry.isDirectory() && entry.name.toLowerCase().startsWith("zotero")) {

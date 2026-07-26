@@ -72218,7 +72218,7 @@ async function extractLinux(installerPath, destDir) {
 	const extracted = await import_tool_cache.extractTar(installerPath, destDir);
 	return findZoteroCoreDir(destDir, "linux") || extracted;
 }
-function findZoteroCoreDir(baseDir, platform) {
+function findZoteroCoreDir(baseDir, _platform) {
 	const entries = fs.readdirSync(baseDir, { withFileTypes: true });
 	for (const entry of entries) if (entry.isDirectory() && entry.name.toLowerCase().startsWith("zotero")) return path$9.join(baseDir, entry.name);
 	return null;

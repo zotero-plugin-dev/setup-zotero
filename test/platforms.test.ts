@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { getZoteroBinPath, constructDownloadUrl } from "../src/platforms";
 import * as path from "node:path";
 

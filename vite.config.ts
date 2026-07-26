@@ -1,6 +1,12 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  lint: {
+    ignorePatterns: ["dist/**"],
+  },
+  fmt: {
+    ignorePatterns: ["dist/**"],
+  },
   pack: {
     entry: {
       index: "src/main.ts",
@@ -19,8 +25,8 @@ export default defineConfig({
       chunkFileNames: "shared/[name].mjs",
     },
   },
-  test: {
-    include: ["__tests__/**/*.test.ts"],
-    environment: "node",
+  test: {},
+  staged: {
+    "*.{js,ts,mjs,mts,cjs,cts,json,md,yml,yaml}": "vp check --fix",
   },
 });

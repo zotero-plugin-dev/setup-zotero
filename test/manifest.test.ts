@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { parseVersionInput, resolveVersion } from "../src/manifest";
 import type { ManifestEntry } from "../src/manifest";
 
