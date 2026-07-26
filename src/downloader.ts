@@ -115,8 +115,6 @@ function flattenZoteroCoreDir(baseDir: string): void {
   fs.rmdirSync(coreDir);
 }
 
-export { flattenZoteroCoreDir };
-
 export async function extractZotero(
   installerPath: string,
   platform: string,
