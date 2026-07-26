@@ -95,7 +95,11 @@ async function extractLinux(installerPath: string, destDir: string): Promise<str
 function findZoteroCoreDir(baseDir: string): string | null {
   const entries = fs.readdirSync(baseDir, { withFileTypes: true });
   for (const entry of entries) {
-    if (entry.isDirectory() && entry.name.toLowerCase().startsWith("zotero")) {
+    if (
+      entry.isDirectory() &&
+      entry.name.toLowerCase().startsWith("zotero") &&
+      !entry.name.endsWith(".app")
+    ) {
       return path.join(baseDir, entry.name);
     }
   }
