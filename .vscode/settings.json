@@ -1,0 +1,6 @@
+{
+  "files.watcherExclude": {
+    "dist/index.mjs": true
+  },
+  "diffEditor.maxFileSize": 1
+}
