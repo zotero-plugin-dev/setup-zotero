@@ -21,13 +21,16 @@ export async function downloadInstaller(url: string, destDir: string): Promise<s
 }
 
 function resolveDestPath(url: string, destDir: string): string {
-  const match = url.match(/[?&]platform=([^&]+)/);
-  const platform = match ? match[1] : "";
+  const platMatch = url.match(/[?&]platform=([^&]+)/);
+  const chanMatch = url.match(/[?&]channel=([^&]+)/);
+  const platform = platMatch ? platMatch[1] : "";
+  const channel = chanMatch ? chanMatch[1] : "";
 
-  if (platform === "mac") return path.join(destDir, "Zotero.dmg");
-  if (platform.startsWith("win")) return path.join(destDir, "Zotero.zip");
-  if (platform.startsWith("linux")) return path.join(destDir, "Zotero.tar.xz");
-  return path.join(destDir, "Zotero-installer");
+  const name = channel ? `Zotero-${channel}` : "Zotero";
+  if (platform === "mac") return path.join(destDir, `${name}.dmg`);
+  if (platform.startsWith("win")) return path.join(destDir, `${name}.zip`);
+  if (platform.startsWith("linux")) return path.join(destDir, `${name}.tar.xz`);
+  return path.join(destDir, `${name}-installer`);
 }
 
 async function extractWindows(installerPath: string, destDir: string): Promise<string> {
@@ -110,9 +113,20 @@ function flattenZoteroCoreDir(baseDir: string): void {
   const coreDir = findZoteroCoreDir(baseDir);
   if (!coreDir) return;
   for (const entry of fs.readdirSync(coreDir)) {
-    fs.renameSync(path.join(coreDir, entry), path.join(baseDir, entry));
+    const src = path.join(coreDir, entry);
+    const dst = path.join(baseDir, entry);
+    fs.cpSync(src, dst, { recursive: true, force: true });
+    try {
+      fs.rmSync(src, { recursive: true, force: true });
+    } catch {
+      // Windows may hold file handles briefly after extraction
+    }
   }
-  fs.rmdirSync(coreDir);
+  try {
+    fs.rmSync(coreDir, { recursive: true, force: true });
+  } catch {
+    // Windows may hold file handles briefly after extraction
+  }
 }
 
 export async function extractZotero(
