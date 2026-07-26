@@ -1,10 +1,10 @@
 import * as core from "@actions/core";
 import * as os from "node:os";
 import * as path from "node:path";
-import { detectPlatform, getZoteroBinPath, constructDownloadUrl } from "./platforms";
+import { detectPlatform, getZoteroBinPath } from "./platforms";
 import { fetchLatestVersion } from "./manifest";
 import { computeCacheKey, restoreCache, saveCache } from "./cache";
-import { downloadInstaller, extractZotero } from "./downloader";
+import { installZotero } from "./install";
 import { setupHeadless } from "./headless";
 
 async function run(): Promise<void> {
@@ -27,10 +27,6 @@ async function runMain(): Promise<void> {
   const version = versionInput || (await fetchLatestVersion(channel, platform));
   core.info(`Version: ${version}`);
 
-  if (platform.startsWith("linux")) {
-    await setupHeadless();
-  }
-
   const tmpDir = process.env.RUNNER_TEMP || os.tmpdir();
   const cacheDir = path.join(tmpDir, "setup-zotero");
   const installerDir = path.join(cacheDir, "installer");
@@ -44,11 +40,13 @@ async function runMain(): Promise<void> {
   }
 
   if (!cacheHit) {
-    const url = constructDownloadUrl(platform, channel, version);
-    core.info(`Downloading Zotero ${version} from: ${url}`);
-    const installerPath = await downloadInstaller(url, installerDir);
-    core.info(`Extracting Zotero to: ${programDir}`);
-    await extractZotero(installerPath, platform, programDir);
+    await installZotero(platform, channel, version, installerDir, programDir);
+  }
+
+  const binPath = getZoteroBinPath(programDir, platform);
+
+  if (platform.startsWith("linux")) {
+    await setupHeadless();
   }
 
   core.saveState("is_post", "true");
@@ -56,8 +54,6 @@ async function runMain(): Promise<void> {
   core.saveState("cacheKey", cacheKey);
   core.saveState("cachePaths", JSON.stringify([installerDir, programDir]));
   core.saveState("useCache", useCache.toString());
-
-  const binPath = getZoteroBinPath(programDir, platform);
 
   core.setOutput("cache-hit", cacheHit ? "true" : "false");
   core.setOutput("zotero-version", version);

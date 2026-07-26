@@ -1,6 +1,5 @@
 import * as os from "node:os";
 import * as path from "node:path";
-import { DOWNLOAD_URL_TEMPLATE, DOWNLOAD_URL_VERSION_TEMPLATE } from "./constants";
 
 export function detectPlatform(): string {
   const runnerOs = process.env.RUNNER_OS || os.platform();
@@ -10,9 +9,9 @@ export function detectPlatform(): string {
     case "Windows":
     case "win32":
       if (runnerArch === "ARM64" || runnerArch === "arm64") {
-        return "win-arm64-zip";
+        return "win-arm64";
       }
-      return "win-x64-zip";
+      return "win-x64";
     case "macOS":
     case "darwin":
       return "mac";
@@ -40,11 +39,4 @@ export function getZoteroBinPath(programDir: string, platform: string): string {
     default:
       throw new Error(`Unknown platform: ${platform}`);
   }
-}
-
-export function constructDownloadUrl(platform: string, channel: string, version?: string): string {
-  const template = version ? DOWNLOAD_URL_VERSION_TEMPLATE : DOWNLOAD_URL_TEMPLATE;
-  let url = template.replace("{channel}", channel).replace("{platform}", platform);
-  if (version) url = url.replace("{version}", encodeURIComponent(version));
-  return url;
 }

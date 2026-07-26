@@ -3,8 +3,17 @@ import * as exec from "@actions/exec";
 import * as toolCache from "@actions/tool-cache";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { DOWNLOAD_URL_TEMPLATE, DOWNLOAD_URL_VERSION_TEMPLATE } from "./constants";
 
-export async function downloadInstaller(url: string, destDir: string): Promise<string> {
+export function constructDownloadUrl(platform: string, channel: string, version?: string): string {
+  const dlPlatform = platform.startsWith("win") ? `${platform}-zip` : platform;
+  const template = version ? DOWNLOAD_URL_VERSION_TEMPLATE : DOWNLOAD_URL_TEMPLATE;
+  let url = template.replace("{channel}", channel).replace("{platform}", dlPlatform);
+  if (version) url = url.replace("{version}", encodeURIComponent(version));
+  return url;
+}
+
+async function downloadInstaller(url: string, destDir: string): Promise<string> {
   fs.mkdirSync(destDir, { recursive: true });
 
   const destPath = resolveDestPath(url, destDir);
@@ -129,7 +138,21 @@ function flattenZoteroCoreDir(baseDir: string): void {
   }
 }
 
-export async function extractZotero(
+export async function installZotero(
+  platform: string,
+  channel: string,
+  version: string,
+  installerDir: string,
+  programDir: string,
+): Promise<void> {
+  const url = constructDownloadUrl(platform, channel, version);
+  core.info(`Downloading Zotero ${version} from: ${url}`);
+  const installerPath = await downloadInstaller(url, installerDir);
+  core.info(`Extracting Zotero to: ${programDir}`);
+  await extractZotero(installerPath, platform, programDir);
+}
+
+async function extractZotero(
   installerPath: string,
   platform: string,
   destDir: string,
