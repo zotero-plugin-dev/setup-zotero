@@ -45,6 +45,6 @@ export function getZoteroBinPath(programDir: string, platform: string): string {
 export function constructDownloadUrl(platform: string, channel: string, version?: string): string {
   const template = version ? DOWNLOAD_URL_VERSION_TEMPLATE : DOWNLOAD_URL_TEMPLATE;
   let url = template.replace("{channel}", channel).replace("{platform}", platform);
-  if (version) url = url.replace("{version}", version);
+  if (version) url = url.replace("{version}", encodeURIComponent(version));
   return url;
 }

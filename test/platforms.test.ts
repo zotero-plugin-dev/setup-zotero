@@ -48,7 +48,7 @@ describe("constructDownloadUrl", () => {
   it("should construct URL for beta with buildID", () => {
     const url = constructDownloadUrl("win-x64-zip", "beta", "10.0-beta.16+566115dc7");
     expect(url).toBe(
-      "https://www.zotero.org/download/client/dl?channel=beta&platform=win-x64-zip&version=10.0-beta.16+566115dc7",
+      "https://www.zotero.org/download/client/dl?channel=beta&platform=win-x64-zip&version=10.0-beta.16%2B566115dc7",
     );
   });
 });

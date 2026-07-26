@@ -1,4 +1,4 @@
-export const DOWNLOAD_PAGE_URL = "https://www.zotero.org/download/";
+export const VERSION_API_URL = "https://www.zotero.org/download/client/version";
 
 export const DOWNLOAD_URL_TEMPLATE =
   "https://www.zotero.org/download/client/dl?channel={channel}&platform={platform}";
