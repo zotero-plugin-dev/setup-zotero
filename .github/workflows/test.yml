@@ -22,7 +22,6 @@ jobs:
       - name: Verify outputs
         run: |
           echo "Version: ${{ steps.zotero.outputs.zotero-version }}"
-          echo "Build ID: ${{ steps.zotero.outputs.zotero-build-id }}"
           echo "Bin path: ${{ steps.zotero.outputs.zotero-bin-path }}"
           echo "Platform: ${{ steps.zotero.outputs.zotero-platform }}"
       - name: Verify Zotero binary exists
