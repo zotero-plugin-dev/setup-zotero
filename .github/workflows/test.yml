@@ -1,4 +1,4 @@
-name: E2E Test
+name: Test
 
 on:
   workflow_dispatch:
@@ -8,14 +8,14 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  e2e:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         channel: [release, beta, dev]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v7
       - uses: ./
