@@ -39,14 +39,10 @@ jobs:
             echo "binary-ok=true" >> "$GITHUB_OUTPUT"
           else
             echo "binary-ok=false" >> "$GITHUB_OUTPUT"
+            echo "Binary not found at ${{ steps.zotero.outputs.zotero-bin-path }}"
+            ls -la "$(dirname "${{ steps.zotero.outputs.zotero-bin-path }}")" || true
+            exit 1
           fi
-      - name: Verify binary
-        if: always() && steps.check-binary.outputs.binary-ok != 'true'
-        shell: bash
-        run: |
-          echo "Binary not found at ${{ steps.zotero.outputs.zotero-bin-path }}"
-          ls -la "$(dirname "${{ steps.zotero.outputs.zotero-bin-path }}")" || true
-          exit 1
       - name: Check headless
         id: check-headless
         if: always() && runner.os == 'Linux'
@@ -56,13 +52,9 @@ jobs:
             echo "headless-ok=true" >> "$GITHUB_OUTPUT"
           else
             echo "headless-ok=false" >> "$GITHUB_OUTPUT"
+            echo "Expected DISPLAY=:99, got: ${DISPLAY}"
+            exit 1
           fi
-      - name: Verify headless
-        if: always() && runner.os == 'Linux' && steps.check-headless.outputs.headless-ok != 'true'
-        shell: bash
-        run: |
-          echo "Expected DISPLAY=:99, got: ${DISPLAY}"
-          exit 1
 
   summary:
     needs: test
