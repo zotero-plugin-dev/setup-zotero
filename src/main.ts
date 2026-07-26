@@ -32,7 +32,7 @@ async function runMain(): Promise<void> {
   }
 
   const tmpDir = process.env.RUNNER_TEMP || os.tmpdir();
-  const cacheDir = path.join(tmpDir, "zotero-setup");
+  const cacheDir = path.join(tmpDir, "setup-zotero");
   const installerDir = path.join(cacheDir, "installer");
   const programDir = path.join(cacheDir, version);
   const cacheKey = computeCacheKey(platform, channel, version);

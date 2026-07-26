@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        channel: [release]
+        channel: [release, beta, dev]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
@@ -46,3 +46,20 @@ jobs:
             echo "DISPLAY not set to :99, got: ${DISPLAY}"
             exit 1
           fi
+      - name: Write summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "### Zotero Setup :rocket:"
+            echo ""
+            echo "| Key | Value |"
+            echo "| --- | --- |"
+            echo "| OS | ${{ runner.os }} |"
+            echo "| Channel | ${{ matrix.channel }} |"
+            echo "| Version | \`${{ steps.zotero.outputs.zotero-version }}\` |"
+            echo "| Platform | \`${{ steps.zotero.outputs.zotero-platform }}\` |"
+            echo "| Cache Hit | ${{ steps.zotero.outputs.cache-hit }} |"
+            echo "| Binary Path | \`${{ steps.zotero.outputs.zotero-bin-path }}\` |"
+            echo "| Zotero Path | \`${{ steps.zotero.outputs.zotero-path }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
