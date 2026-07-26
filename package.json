@@ -8,6 +8,7 @@
     "test": "vp test",
     "check": "vp check",
     "check:fix": "vp check --fix",
+    "test:e2e": "node --experimental-strip-types test/e2e.ts",
     "prepare": "vp config"
   },
   "dependencies": {

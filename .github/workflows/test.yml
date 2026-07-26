@@ -1,0 +1,37 @@
+name: E2E Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        channel: [release]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        id: zotero
+        with:
+          channel: ${{ matrix.channel }}
+      - name: Verify outputs
+        run: |
+          echo "Version: ${{ steps.zotero.outputs.zotero-version }}"
+          echo "Build ID: ${{ steps.zotero.outputs.zotero-build-id }}"
+          echo "Bin path: ${{ steps.zotero.outputs.zotero-bin-path }}"
+          echo "Platform: ${{ steps.zotero.outputs.zotero-platform }}"
+      - name: Verify Zotero binary exists
+        shell: bash
+        run: |
+          if [ -f "${{ steps.zotero.outputs.zotero-bin-path }}" ]; then
+            echo "Zotero binary found"
+          else
+            echo "Zotero binary NOT found at ${{ steps.zotero.outputs.zotero-bin-path }}"
+            ls -la "$(dirname "${{ steps.zotero.outputs.zotero-bin-path }}")" || true
+            exit 1
+          fi
