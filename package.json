@@ -1,5 +1,5 @@
 {
-  "name": "action-setup-zotero",
+  "name": "setup-zotero",
   "private": true,
   "type": "module",
   "scripts": {

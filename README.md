@@ -1,4 +1,4 @@
-# action-setup-zotero
+# setup-zotero
 
 Download and setup Zotero in CI for plugin development and testing.
 
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: zotero-plugin-dev/action-setup-zotero@v1
+      - uses: zotero-plugin-dev/setup-zotero@v1
         with:
           channel: release
       - run: echo "Zotero at ${{ steps.zotero.outputs.zotero-bin-path }}"
