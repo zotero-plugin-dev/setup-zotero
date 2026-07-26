@@ -35,8 +35,8 @@ async function extractWindows(installerPath: string, destDir: string): Promise<s
   core.info("Extracting ZIP...");
   await toolCache.extractZip(installerPath, destDir);
   core.info("ZIP extraction succeeded");
-  const coreDir = findZoteroCoreDir(destDir);
-  return coreDir || destDir;
+  flattenZoteroCoreDir(destDir);
+  return destDir;
 }
 
 async function extractMacOS(installerPath: string, destDir: string): Promise<string> {
@@ -86,10 +86,10 @@ async function extractLinux(installerPath: string, destDir: string): Promise<str
   fs.mkdirSync(destDir, { recursive: true });
 
   core.info("Extracting Zotero archive...");
-  const extracted = await toolCache.extractTar(installerPath, destDir);
+  await toolCache.extractTar(installerPath, destDir, "xJ");
 
-  const coreDir = findZoteroCoreDir(destDir);
-  return coreDir || extracted;
+  flattenZoteroCoreDir(destDir);
+  return destDir;
 }
 
 function findZoteroCoreDir(baseDir: string): string | null {
@@ -101,6 +101,17 @@ function findZoteroCoreDir(baseDir: string): string | null {
   }
   return null;
 }
+
+function flattenZoteroCoreDir(baseDir: string): void {
+  const coreDir = findZoteroCoreDir(baseDir);
+  if (!coreDir) return;
+  for (const entry of fs.readdirSync(coreDir)) {
+    fs.renameSync(path.join(coreDir, entry), path.join(baseDir, entry));
+  }
+  fs.rmdirSync(coreDir);
+}
+
+export { flattenZoteroCoreDir };
 
 export async function extractZotero(
   installerPath: string,

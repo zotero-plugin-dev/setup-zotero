@@ -4,7 +4,7 @@ import * as path from "node:path";
 import { detectPlatform, getZoteroBinPath, constructDownloadUrl } from "./platforms";
 import { fetchLatestVersion } from "./manifest";
 import { computeCacheKey, restoreCache, saveCache } from "./cache";
-import { downloadInstaller, extractZotero } from "./downloader";
+import { downloadInstaller, extractZotero, flattenZoteroCoreDir } from "./downloader";
 import { setupHeadless } from "./headless";
 
 async function run(): Promise<void> {
@@ -40,7 +40,10 @@ async function runMain(): Promise<void> {
   let cacheHit = false;
   if (useCache) {
     const restored = await restoreCache(cacheKey, [installerDir, programDir]);
-    if (restored) cacheHit = true;
+    if (restored) {
+      cacheHit = true;
+      flattenZoteroCoreDir(programDir);
+    }
   }
 
   if (!cacheHit) {
