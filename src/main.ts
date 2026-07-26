@@ -67,13 +67,11 @@ async function runMain(): Promise<void> {
 
   core.setOutput("cache-hit", cacheHit ? "true" : "false");
   core.setOutput("zotero-version", version);
-  core.setOutput("zotero-path", programDir);
   core.setOutput("zotero-bin-path", binPath);
   core.setOutput("zotero-platform", platform);
   core.setOutput("zotero-channel", channel);
 
   core.exportVariable("ZOTERO_PLUGIN_ZOTERO_BIN_PATH", binPath);
-  core.exportVariable("ZOTERO_PATH", programDir);
   core.exportVariable("ZOTERO_VERSION", version);
 }
 

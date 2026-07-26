@@ -28,8 +28,6 @@ outputs:
     description: "Whether Zotero was restored from cache"
   zotero-version:
     description: "The installed Zotero version"
-  zotero-path:
-    description: "Path to the Zotero program directory"
   zotero-bin-path:
     description: "Path to the Zotero executable (for zotero-plugin-scaffold)"
   zotero-platform:
