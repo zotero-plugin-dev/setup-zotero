@@ -34,3 +34,14 @@ jobs:
             ls -la "$(dirname "${{ steps.zotero.outputs.zotero-bin-path }}")" || true
             exit 1
           fi
+      - name: Verify headless (Linux only)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          echo "DISPLAY=${DISPLAY}"
+          if [ "$DISPLAY" = ":99" ]; then
+            echo "Headless display configured correctly"
+          else
+            echo "DISPLAY not set to :99, got: ${DISPLAY}"
+            exit 1
+          fi
