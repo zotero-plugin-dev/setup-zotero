@@ -42,5 +42,5 @@ runs:
   post-if: success()
 
 branding:
-  icon: "download"
+  icon: "package"
   color: "red"
