@@ -4,7 +4,7 @@ import * as path from "node:path";
 
 const INPUTS: Record<string, string> = {
   channel: "release",
-  // cache: "false", // 本地测试可关闭缓存加速
+  // cache: "false", // Disable cache for local testing
 };
 
 const platform = process.platform;
@@ -16,7 +16,7 @@ const env: Record<string, string> = {
   INPUT_CHANNEL: INPUTS.channel,
 };
 
-// 仅在指定时设置，否则让 action 自动检测
+// Only set when specified, otherwise let the action auto-detect
 if (INPUTS["zotero-version"]) env.INPUT_ZOTERO_VERSION = INPUTS["zotero-version"];
 if (INPUTS.cache) env.INPUT_CACHE = INPUTS.cache;
 
