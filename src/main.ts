@@ -72,6 +72,7 @@ async function runMain(): Promise<void> {
   core.setOutput("zotero-channel", channel);
 
   core.exportVariable("ZOTERO_PLUGIN_ZOTERO_BIN_PATH", binPath);
+  core.exportVariable("ZOTERO_BIN_PATH", binPath);
   core.exportVariable("ZOTERO_VERSION", version);
   core.exportVariable("ZOTERO_SETUP_COMPLETE", "true");
 }
