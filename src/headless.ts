@@ -28,17 +28,22 @@ export async function setupHeadless(): Promise<void> {
     return;
   }
 
-  core.info("Installing Xvfb and dependencies...");
+  core.startGroup("Update apt");
   await exec.exec("sudo", ["apt-get", "update"]);
+  core.endGroup();
+
+  core.startGroup("Install Xvfb");
   await exec.exec("sudo", ["apt-get", "install", "-y", "xvfb", "x11-xkb-utils", "xkb-data"]);
+  core.endGroup();
 
   const ubuntuVersion = await getUbuntuVersion();
   if (ubuntuVersion && ubuntuVersion.startsWith("24")) {
-    core.info("Ubuntu 24.04 detected, installing additional dependencies...");
+    core.startGroup("Install Ubuntu 24.04 extras");
     await exec.exec("sudo", ["apt-get", "install", "-y", "libasound2t64", "libdbus-glib-1-2"]);
+    core.endGroup();
   }
 
-  core.info("Starting Xvfb on display :99...");
+  core.startGroup("Start Xvfb");
   const xvfb = spawn(
     "Xvfb",
     [":99", "-screen", "0", "1920x1080x24", "-ac", "+extension", "RANDR"],
@@ -48,7 +53,7 @@ export async function setupHeadless(): Promise<void> {
     },
   );
   xvfb.unref();
-
   core.exportVariable("DISPLAY", ":99");
-  core.info("DISPLAY set to :99");
+  core.info("Xvfb started, DISPLAY=:99");
+  core.endGroup();
 }
