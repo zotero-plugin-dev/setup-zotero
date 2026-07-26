@@ -14,12 +14,12 @@ jobs:
       - uses: voidzero-dev/setup-vp@v1
       - run: vp install
       - run: vp pack
-      - name: Verify dist/ is up to date
+      - name: Verify dist is up to date
         run: |
-          if git diff --quiet -- dist/; then
-            echo "dist/ is up to date"
+          if git diff --quiet -- dist; then
+            echo "dist is up to date"
           else
-            echo "dist/ is stale. Run 'vp pack' and commit the changes."
-            git diff -- dist/
+            echo "dist is stale. Run 'vp pack' and commit the changes."
+            git diff -- dist
             exit 1
           fi

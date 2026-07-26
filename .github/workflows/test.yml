@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   test:
@@ -14,8 +16,6 @@ jobs:
       fail-fast: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
-    outputs:
-      result: ${{ steps.out.outputs.result }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./
@@ -23,76 +23,23 @@ jobs:
         with:
           channel: ${{ matrix.channel }}
       - name: Check binary
-        id: check-binary
         shell: bash
         run: |
           if [ -f "${{ steps.zotero.outputs.zotero-bin-path }}" ]; then
-            echo "binary-ok=true" >> "$GITHUB_OUTPUT"
+            echo "Zotero binary found"
           else
-            echo "binary-ok=false" >> "$GITHUB_OUTPUT"
-            echo "Binary not found at ${{ steps.zotero.outputs.zotero-bin-path }}"
+            echo "Zotero binary NOT found at ${{ steps.zotero.outputs.zotero-bin-path }}"
             ls -la "$(dirname "${{ steps.zotero.outputs.zotero-bin-path }}")" || true
             exit 1
           fi
       - name: Check headless
-        id: check-headless
-        if: always() && runner.os == 'Linux'
+        if: runner.os == 'Linux'
         shell: bash
         run: |
+          echo "DISPLAY=${DISPLAY}"
           if [ "$DISPLAY" = ":99" ]; then
-            echo "headless-ok=true" >> "$GITHUB_OUTPUT"
+            echo "Headless display configured correctly"
           else
-            echo "headless-ok=false" >> "$GITHUB_OUTPUT"
-            echo "Expected DISPLAY=:99, got: ${DISPLAY}"
+            echo "DISPLAY not set to :99, got: ${DISPLAY}"
             exit 1
           fi
-      - name: Set outputs
-        id: out
-        if: always()
-        shell: bash
-        run: |
-          HEADLESS="${{ steps.check-headless.outputs.headless-ok }}"
-          if [ -z "$HEADLESS" ]; then HEADLESS="n/a"; fi
-          RESULT="{\"os\":\"${{ runner.os }}\",\"channel\":\"${{ matrix.channel }}\",\"version\":\"${{ steps.zotero.outputs.zotero-version }}\",\"platform\":\"${{ steps.zotero.outputs.zotero-platform }}\",\"binary-ok\":\"${{ steps.check-binary.outputs.binary-ok }}\",\"headless-ok\":\"${HEADLESS}\"}"
-          echo "result=$RESULT" >> "$GITHUB_OUTPUT"
-
-  summary:
-    needs: test
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate summary
-        env:
-          RESULTS: ${{ toJson(needs.test.outputs) }}
-        run: |
-          echo "$RESULTS" > /tmp/results.json
-          python3 << PYEOF
-          import json, os
-
-          with open("/tmp/results.json") as f:
-              data = json.load(f)
-
-          results = data.get("result", {})
-
-          lines = ["## Zotero Setup E2E Results", ""]
-          lines.append("| OS | Channel | Version | Platform | Binary | Headless |")
-          lines.append("| --- | --- | --- | --- | --- | --- |")
-
-          if not results:
-              lines.append("| - | - | No results | - | - | - |")
-
-          for key in sorted(results.keys()):
-              result = json.loads(results[key])
-              os_name = result["os"].replace("-latest", "")
-              channel = result["channel"]
-              version = result.get("version", "-")
-              platform = result.get("platform", "-")
-              binary = ":white_check_mark:" if result.get("binary-ok") == "true" else ":x:"
-              hd = result.get("headless-ok", "n/a")
-              headless = ":white_check_mark:" if hd == "true" else (":x:" if hd == "false" else "-")
-              lines.append(f"| {os_name} | {channel} | `{version}` | `{platform}` | {binary} | {headless} |")
-
-          summary = "\n".join(lines)
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
-              f.write(summary + "\n")
-          PYEOF
