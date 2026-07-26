@@ -43,3 +43,22 @@ jobs:
             echo "DISPLAY not set to :99, got: ${DISPLAY}"
             exit 1
           fi
+
+  e2e-no-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        id: zotero
+        with:
+          cache: false
+      - name: Check binary
+        shell: bash
+        run: |
+          if [ -f "${{ steps.zotero.outputs.zotero-bin-path }}" ]; then
+            echo "Zotero binary found"
+          else
+            echo "Zotero binary NOT found at ${{ steps.zotero.outputs.zotero-bin-path }}"
+            exit 1
+          fi
