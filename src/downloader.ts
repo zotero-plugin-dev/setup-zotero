@@ -35,7 +35,8 @@ async function extractWindows(installerPath: string, destDir: string): Promise<s
   core.info("Extracting ZIP...");
   await toolCache.extractZip(installerPath, destDir);
   core.info("ZIP extraction succeeded");
-  return destDir;
+  const coreDir = findZoteroCoreDir(destDir);
+  return coreDir || destDir;
 }
 
 async function extractMacOS(installerPath: string, destDir: string): Promise<string> {

@@ -1,6 +1,7 @@
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as fs from "node:fs";
+import { spawn } from "node:child_process";
 
 async function isUbuntu(): Promise<boolean> {
   try {
@@ -38,9 +39,15 @@ export async function setupHeadless(): Promise<void> {
   }
 
   core.info("Starting Xvfb on display :99...");
-  exec.exec("Xvfb", [":99", "-screen", "0", "1920x1080x24", "-ac", "+extension", "RANDR"], {
-    background: true,
-  });
+  const xvfb = spawn(
+    "Xvfb",
+    [":99", "-screen", "0", "1920x1080x24", "-ac", "+extension", "RANDR"],
+    {
+      detached: true,
+      stdio: "ignore",
+    },
+  );
+  xvfb.unref();
 
   core.exportVariable("DISPLAY", ":99");
   core.info("DISPLAY set to :99");
