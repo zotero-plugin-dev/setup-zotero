@@ -1,0 +1,14 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  sync-major-tag:
+    uses: zotero-plugin-dev/workflows/.github/workflows/sync-major-tag.yml@main
+    with:
+      tag: ${{ github.event.release.tag_name }}
