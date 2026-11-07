@@ -12,15 +12,15 @@
     "prepare": "vp config"
   },
   "dependencies": {
-    "@actions/cache": "^4.0.0",
-    "@actions/core": "^1.11.0",
-    "@actions/exec": "^1.1.0",
-    "@actions/http-client": "^2.2.0",
-    "@actions/tool-cache": "^2.0.0"
+    "@actions/cache": "^6.3.0",
+    "@actions/core": "^3.0.1",
+    "@actions/exec": "^3.0.0",
+    "@actions/http-client": "^4.0.1",
+    "@actions/tool-cache": "^4.0.0"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "vite-plus": "^0.2.0"
+    "@types/node": "^24.19.2",
+    "vite-plus": "^1.5.0"
   },
   "engines": {
     "node": ">=24"
