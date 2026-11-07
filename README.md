@@ -61,3 +61,18 @@ zotero-{platform}-{channel}-{version}
 ```
 
 Set `cache: 'false'` to disable caching.
+
+## Failure behavior
+
+The action fails immediately and exits the step when the Zotero servers answer
+with a non-200 status (for example `503 Service Unavailable` during maintenance)
+or when the request times out (`30s`). It does not retry and it never waits for
+the job timeout, so a run is not blocked until the runner kills it.
+
+To stay independent of the version API, pin the version explicitly:
+
+```yaml
+- uses: zotero-plugin-dev/setup-zotero@v1
+  with:
+    zotero-version: 7.0.11
+```

@@ -94,17 +94,37 @@ async function runPost(): Promise<void> {
   core.endGroup();
 }
 
+async function writeFailureSummary(message: string, stack: string): Promise<void> {
+  try {
+    await core.summary
+      .addHeading("Setup Zotero Failed", 2)
+      .addCodeBlock(message, "text")
+      .addRaw("<details><summary>Stack trace</summary>\n\n")
+      .addCodeBlock(stack || "(none)", "text")
+      .addRaw("\n</details>")
+      .write();
+  } catch {
+    // The summary is best effort; never let it mask the original error.
+  }
+}
+
+/** Waits until everything written to stdout has been flushed. */
+async function flushStdout(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    process.stdout.write("", () => resolve());
+  });
+}
+
 run().catch(async (error) => {
   const message = error instanceof Error ? error.message : String(error);
   const stack = error instanceof Error ? error.stack : "";
 
-  await core.summary
-    .addHeading("Setup Zotero Failed", 2)
-    .addCodeBlock(message, "text")
-    .addRaw("<details><summary>Stack trace</summary>\n\n")
-    .addCodeBlock(stack || "(none)", "text")
-    .addRaw("\n</details>")
-    .write();
-
+  await writeFailureSummary(message, stack);
   core.setFailed(message);
+  await flushStdout();
+
+  // Fail the step right away. Anything still holding the event loop open (a
+  // lingering socket, a child process) must not keep the job alive until the
+  // runner timeout.
+  process.exit(1);
 });

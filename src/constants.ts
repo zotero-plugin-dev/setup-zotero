@@ -1,5 +1,8 @@
 export const VERSION_API_URL = "https://www.zotero.org/download/client/version";
 
+/** Overall deadline for requests against the Zotero servers, in milliseconds. */
+export const HTTP_TIMEOUT_MS = 30_000;
+
 export const DOWNLOAD_URL_TEMPLATE =
   "https://www.zotero.org/download/client/dl?channel={channel}&platform={platform}";
 
